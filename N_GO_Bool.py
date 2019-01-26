@@ -36,11 +36,14 @@ with open(output_addr, 'w') as csvfile:
 	writer.writeheader()
 	
 	new_row = {}
+	count = 0
 	for g in gene_set:
 		new_row['genes'] = g
 		for f in feat_set:
 			new_row[f] = int((f,g) in feature_tuple_set)
+		count+= 1
 		writer.writerow(new_row)
+	print("count",count)
 
 print('generate feature_list...')
 with open(featurelist_addr, 'w') as file:
