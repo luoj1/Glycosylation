@@ -4,7 +4,9 @@ data_path = './negative_dataset'
 res = os.listdir(data_path)
 feature_file = 'negative_dataset/N_Negative_sequence.csv'
 file_list = [ data_path + '/'+ f for f in res]
-dest = 'negative_dataset/output.txt'
+#print(file_list)
+#print(len(file_list))
+dest = './negative_dataset/output.txt' # make sure dest is formatted as ./...
 def features(file):
 	out = set()
 	with open(file, 'r') as csvfile:
@@ -16,6 +18,10 @@ def features(file):
 def neg_feature_fetch(filelist, features, output):
 	with open(output, 'w') as writer:
 		for file in filelist:
+			print(file)
+			if not file[-3:] == 'txt' or file == dest:
+				print('skip ', file)
+				continue
 			with open(file, 'r') as file:
 				#omit first 20 rows
 				for i in range (0,20):
@@ -24,11 +30,13 @@ def neg_feature_fetch(filelist, features, output):
 				line  = file.readline()
 				while not line == '':
 					row = line
+
 					line = line.split()
 					try:
 						name = line[2].split('_')[1]
 					except:
-						return
+						line = ''
+						continue
 					site = line[3]
 					if (name,site) in features:
 						writer.write(row)
