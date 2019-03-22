@@ -85,7 +85,7 @@ def concat_dataset(src, output = None):
 
 def extend(base ,source, output = None):
 	base_df = pd.read_csv(base)
-	source_df = pd.read_csv(source, index_col=0)
+	source_df = pd.read_csv(source)
 
 	new_row = {}
 	new_row['ID'] = []
@@ -119,17 +119,24 @@ def extend(base ,source, output = None):
 
 	print('====finish init header===')
 	counter = 0
+	mem = {}
+
 	for i, row in base_df.iterrows():
 		#print(row)
 		row_id = base_df.loc[i,'ID']
 		row_site = base_df.loc[i,'site']
 		q= 'n == "' + str(row_site)+ '"'
-		x = source_df[source_df.id.str.contains(row_id)]
+		if not row_id in mem:
+			x = source_df[source_df.id.str.contains(row_id)]
+			mem[row_id] = x
+		else:
+			x = mem[row_id] 
 		x = x.query(q)
-		if counter%100==0:
+		if counter%1000==1:
 			print('count: ', counter)
-			print(q)
-			print(x)
+			#print(q)
+			#print(x)
+			
 		counter+=1
 		#print('====',len(x.index),'====')
 		if len(x.index) > 0:
@@ -139,13 +146,15 @@ def extend(base ,source, output = None):
 				new_row['site'].append(row_site)
 				for k in list(base_df):
 					#print('key in row', k)
+					#print('v in row', base_df.loc[i,k])
 					if not k == 'ID' and not k == 'site' and k in new_row:
 						new_row[k].append(base_df.loc[i,k])
 				for k in list(source_df):
 					#print('key in x', k)
+					#print('v in x', source_df.loc[xi,k])
 					if not k == 'id' and not k == 'n' and k in new_row:
 						new_row[k].append(source_df.loc[xi,k])
-				print('add', row_id, row_site)
+				#print('add', row_id, row_site)
 	out = pd.DataFrame(new_row)
 	print('finsh', out.shape)
 	if not output == None:

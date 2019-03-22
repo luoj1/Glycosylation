@@ -7,8 +7,8 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn import metrics
 import random
 
-pos_dataset = pd.read_csv('./merge/intersected/processed_positive_noGO.csv',index_col = 0)  
-neg_dataset = pd.read_csv('./merge/intersected/processed_negative_noGO.csv',index_col = 0)  
+pos_dataset = pd.read_csv('./merge/intersected/processed_positive2_secondaryOnly.csv',index_col = 0)  
+neg_dataset = pd.read_csv('./merge/intersected/processed_negative2_secondaryOnly.csv',index_col = 0)  
 
 pos_dataset = pos_dataset.drop(columns=["ID"])
 neg_dataset = neg_dataset.drop(columns=["ID"])
@@ -20,8 +20,9 @@ neg_dataset = neg_dataset.drop(columns=["site"])
 #print(neg_dataset)
 
 all_dataset_concat = pd.concat([pos_dataset,neg_dataset],sort=False)
-print(all_dataset_concat)
-all_dataset = [tuple([np.float32(num) for num in row[1:]]) for row in all_dataset_concat.itertuples()]
+#print(all_dataset_concat)
+all_dataset = [row[1:] for row in all_dataset_concat.itertuples()]
+
 #print(all_dataset[:2])
 label_pos = [np.float32(1) for _ in range(len(pos_dataset.index))] 
 label_neg = [np.float32(0) for _ in range(len(neg_dataset.index))]
@@ -48,21 +49,20 @@ random.shuffle(randomizer)
 randomizer = list(zip(*randomizer))
 
 all_dataset = list(randomizer[0])
-print(len(all_dataset))
+#print(len(all_dataset))
 all_label = list(randomizer[1])
-print(len(all_label))
+#print(len(all_label))
 #concat pos and neg together and produce a matrix of labeling
 
 #may need further processing to have a bit map like matrix
-
-
 
 data_train, data_test, label_train, label_test = train_test_split(all_dataset, all_label, test_size=0.2, random_state=0)
 
 regressor = RandomForestRegressor(n_estimators=20, random_state=0)  
 regressor.fit(data_train, label_train)  
 pred = regressor.predict(data_test)  
-
+print(len(pred.tolist()))
+print(len(label_test))
 real_pred = [1 if p > 0.5 else 0 for p in pred.tolist()]
 success = 0
 for i in range(len(real_pred)):
@@ -72,3 +72,19 @@ print("sucess rate", success/len(pred))
 print('Mean Absolute Error:', metrics.mean_absolute_error(label_test, pred))  
 print('Mean Squared Error:', metrics.mean_squared_error(label_test, pred))  
 print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(label_test, pred)))  
+
+
+importances = regressor.feature_importances_
+std = np.std([tree.feature_importances_ for tree in regressor.estimators_],
+             axis=0)
+indices = np.argsort(importances)[::-1]
+
+# Print the feature ranking
+print("Feature ranking:")
+
+with open('./train_result.txt', 'w') as writer:
+	for f in range(len(list(all_dataset_concat))):
+	    writer.write('feat: '+str(list(all_dataset_concat)[f])+'\n')
+	    writer.write('imp: '+str(std[f])+'\n')
+
+
