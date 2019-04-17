@@ -82,7 +82,114 @@ def concat_dataset(src, output = None):
 		out.to_csv(output)
 	print('finish concat ', src)
 	return out
+def name2amino_matrix_batch_multiple(src, dictionary, batch,output = None):
+	print(src)
+	print(batch)
+	dictionary_df = pd.read_csv(dictionary)
+	frames = []
+	for file in src:
 
+		df = name2amino_matrix_batch("./dataset2/data/"+file, dictionary_df, batch)
+		print("append")
+		frames.append(df)
+	result = pd.concat(frames)
+	result.to_csv(output+'result_ext.csv')
+	for b in batch:
+		s = result.query("type == '"+str(b)+"' & label == 'positive'")
+		s.out_csv(output+b+'_pos.csv')
+		s = result.query("type == '"+str(b)+"' & label == 'negative'")
+		s.out_csv(output+b+'_neg.csv')
+	print('finish')
+
+
+def name2amino_matrix_batch(src, dictionary_df,output = None):
+	amino = ['R', 'H', 'K', 'D', 'E', 'S', 'T', 'N', 'Q', 'C', 'U' ,'G', 'P', 'A', 'V', 'I','L','M','F','Y','W']
+	seq_len = 14
+	additional = []
+	for i in range(seq_len):
+		additional += [ 'seq'+str(i)+'_'+a for a in amino]
+	additional+=['type','label','site','ID']
+	#dictionary_df = pd.read_csv(dictionary)
+	#csv_df_header = list(pd.read_csv(src, index_col = 0)) + additional
+	csv_df = pd.read_csv(src)
+	print(src,' header ',list(csv_df)[:10])
+	print('size: ',csv_df.shape)
+	mem = {}
+	#print(csv_df)
+	rm = []
+	for i , row in csv_df.iterrows():
+		if i % 10000 == 1:
+			print('work on ', i)
+		ID = csv_df.loc[i,'id'].split('_')[1]
+		site = csv_df.loc[i,'n']
+
+		#print(ID)
+		#print(site)
+		s = dictionary_df.query("ID == '"+str(ID)+"' & site == '"+str(site)+"'")
+		#print(s)
+		if len(s.index) == 0:
+			rm.append(i)
+			continue
+		seq = s.iloc[0]['sequence']
+
+		#print(seq)
+		for seq_i in range(seq_len):
+			col = 'seq' + str(seq_i) + '_' + seq[seq_i]
+			if not col in additional:
+				print('no',col)
+				raise('nan issue')
+			csv_df.loc[i,col]=1
+		csv_df.loc[i,'id'] = ID
+		csv_df.loc[i,'ID'] = ID
+		csv_df.loc[i,'site'] = site
+		csv_df.loc[i,'type']=s.iloc[0]['type']
+		csv_df.loc[i,'label']=s.iloc[0]['label']
+
+		#print(csv_df)
+	csv_df.drop(rm)
+		#break
+	print('outputing')
+	return csv_df
+def name2amino_matrix(src, dictionary, output = None):
+	amino = ['R', 'H', 'K', 'D', 'E', 'S', 'T', 'N', 'Q', 'C', 'U' ,'G', 'P', 'A', 'V', 'I','L','M','F','Y','W']
+	seq_len = 14
+	additional = []
+	for i in range(seq_len):
+		additional += [ 'seq'+str(i)+'_'+a for a in amino]
+	dictionary_df = pd.read_csv(dictionary)
+	#csv_df_header = list(pd.read_csv(src, index_col = 0)) + additional
+	csv_df = pd.read_csv(src, index_col = 0)
+	for c in additional:
+		csv_df[c] = [0 for _ in range(len(csv_df.index))]
+	mem = {}
+	#print(csv_df)
+	rm = []
+	for i , row in csv_df.iterrows():
+		ID = csv_df.loc[i,'ID']
+		site = csv_df.loc[i,'site']
+		#print(ID)
+		#print(site)
+		s = dictionary_df.query("ID == '"+str(ID)+"' & site == '"+str(site)+"'")
+		#print(s)
+		if len(s.index) == 0:
+			rm.append(i)
+			continue
+		seq = s.iloc[0]['sequence']
+
+		#print(seq)
+		for seq_i in range(seq_len):
+			col = 'seq' + str(seq_i) + '_' + seq[seq_i]
+			if not col in additional:
+				print('no',col)
+				return
+			csv_df.loc[i,col]=1
+		#print(csv_df)
+		#break
+	print('outputing')
+	csv_df.drop(rm)
+	if not output == None:
+		csv_df.to_csv(output)
+	return 
 def extend(base ,source, output = None):
 	base_df = pd.read_csv(base)
 	source_df = pd.read_csv(source)
